@@ -39,6 +39,7 @@ struct QuizContentView: View {
                             Menu {
                                 Button(role: .destructive, action: {
                                     hideTabBar.toggle()
+                                    print("hide the tabbar")
                                 }) {
                                     Label("Hide Tab Bar", systemImage: "eye.slash")
                                 }
