@@ -87,7 +87,7 @@ struct KanjiQuizView: View {
                 .hideFloatingTabBar(hideTabBar)
             } else {
                 Text("No cards loaded")
-                    .font(.title)
+                    .font(.title2)
                     .foregroundColor(.secondary)
             }
         }
