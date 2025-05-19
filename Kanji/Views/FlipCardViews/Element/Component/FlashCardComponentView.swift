@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct KanjiCardView: View {
+struct FlashCardComponentView: View {
     var card: Kanji
     @State private var isFlipped = false
     @State private var degree = 0.0
@@ -90,7 +90,7 @@ struct CardFace<Content: View>: View {
 }
 
 #Preview {
-    KanjiCardView(card: Kanji(id: UUID(),kanji: "秋", reading: "あき", meaning: "Musim gugur"))
+    FlashCardComponentView(card: Kanji(id: UUID(),kanji: "秋", reading: "あき", meaning: "Musim gugur"))
         .padding()
         .preferredColorScheme(.dark)
 }

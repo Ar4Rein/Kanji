@@ -12,6 +12,7 @@ struct KanjiSetFlipCardView: View {
     // Environment
     @Environment(\.modelContext) private var modelContext
     @Query private var kanjiSets: [KanjiSet]
+    @State private var hideTabBar: Bool = false
     
     // Grouped kanji sets by level
     private var setsByLevel: [String: [KanjiSet]] {
@@ -38,6 +39,7 @@ struct KanjiSetFlipCardView: View {
                 Section(header: Text(level)) {
                     ForEach(setsByLevel[level] ?? [], id: \.self) { set in
                         KanjiSetFlipCardRow(set: set)
+                            .hideFloatingTabBar(hideTabBar)
                     }
                 }
             }
@@ -67,7 +69,7 @@ struct KanjiSetFlipCardRow: View {
     @State private var session: UserSessionCardModels?
     
     var body: some View {
-        NavigationLink(destination: FlashcardDeckView(kanjiSet: set)) {
+        NavigationLink(destination: FlashCardView(kanjiSet: set)) {
             VStack(alignment: .leading) {
                 HStack {
                     Text(set.name)

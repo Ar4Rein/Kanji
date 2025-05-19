@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct FlashcardDeckView: View {
+struct FlashCardView: View {
     var kanjiSet: KanjiSet
     @State private var currentIndex = 0
     @State private var offset = CGSize.zero
@@ -17,6 +17,7 @@ struct FlashcardDeckView: View {
     @State private var currentSession: UserSessionCardModels?
     @State private var isFirstLoad = true
     @State private var animation: Animation = .bouncy
+    @State private var hideTabBar: Bool = false
     
     @State private var swipeDirection: SwipeDirection = .none
 
@@ -63,7 +64,7 @@ struct FlashcardDeckView: View {
             ZStack {
                 ForEach(Array(shuffledCards.enumerated()), id: \.element.id) { index, card in
                     if index >= currentIndex && index <= currentIndex + 1 {
-                        KanjiCardView(card: card)
+                        FlashCardComponentView(card: card)
                             .scaleEffect(index == currentIndex ? 1.0 : 0.9)
                             .offset(
                                 x: index == currentIndex ? offset.width :
@@ -110,62 +111,68 @@ struct FlashcardDeckView: View {
             .padding(.vertical)
             
             // Navigation buttons
-            HStack(spacing: 40) {
-                Button(action: {
-                    withAnimation(animation) {
-                        if currentIndex > 0 {
-                            swipeDirection = .left
-                            currentIndex -= 1
-                            updateSession()
-                        }
-                    }
-                }) {
-                    Image(systemName: "arrow.left.circle.fill")
-                        .resizable()
-                        .frame(width: 50, height: 50)
-                }
-                .disabled(currentIndex == 0)
-                .opacity(currentIndex == 0 ? 0.3 : 1.0)
-                
-                Button(action: {
-                    withAnimation(animation) {
-                        shuffleCards()
-                        updateSession()
-                    }
-                }) {
-                    Image(systemName: "shuffle.circle.fill")
-                        .resizable()
-                        .frame(width: 50, height: 50)
-                        .foregroundStyle(.purple)
-                }
-                
-                Button(action: {
-                    withAnimation(animation) {
-                        if currentIndex < shuffledCards.count - 1 {
-                            swipeDirection = .right
-                            currentIndex += 1
-                            updateSession()
-                        } else {
-                            // Show progress if reached the end
-                            showingProgress = true
-                        }
-                    }
-                }) {
-                    Image(systemName: "arrow.right.circle.fill")
-                        .resizable()
-                        .frame(width: 50, height: 50)
-                }
-                .disabled(currentIndex == shuffledCards.count)
-                .opacity(currentIndex == shuffledCards.count ? 0.3 : 1.0)
-            }
-            .foregroundStyle(.blue)
-            .padding()
+//            HStack(spacing: 40) {
+//                Button(action: {
+//                    withAnimation(animation) {
+//                        if currentIndex > 0 {
+//                            swipeDirection = .left
+//                            currentIndex -= 1
+//                            updateSession()
+//                        }
+//                    }
+//                }) {
+//                    Image(systemName: "arrow.left.circle.fill")
+//                        .resizable()
+//                        .frame(width: 50, height: 50)
+//                }
+//                .disabled(currentIndex == 0)
+//                .opacity(currentIndex == 0 ? 0.3 : 1.0)
+//                
+//                Button(action: {
+//                    withAnimation(animation) {
+//                        shuffleCards()
+//                        updateSession()
+//                    }
+//                }) {
+//                    Image(systemName: "shuffle.circle.fill")
+//                        .resizable()
+//                        .frame(width: 50, height: 50)
+//                        .foregroundStyle(.purple)
+//                }
+//                
+//                Button(action: {
+//                    withAnimation(animation) {
+//                        if currentIndex < shuffledCards.count - 1 {
+//                            swipeDirection = .right
+//                            currentIndex += 1
+//                            updateSession()
+//                        } else {
+//                            // Show progress if reached the end
+//                            showingProgress = true
+//                        }
+//                    }
+//                }) {
+//                    Image(systemName: "arrow.right.circle.fill")
+//                        .resizable()
+//                        .frame(width: 50, height: 50)
+//                }
+//                .disabled(currentIndex == shuffledCards.count)
+//                .opacity(currentIndex == shuffledCards.count ? 0.3 : 1.0)
+//            }
+//            .foregroundStyle(.blue)
+//            .padding()
         }
         .navigationTitle(kanjiSet.name)
         .navigationBarTitleDisplayMode(.inline)
+        .hideFloatingTabBar(hideTabBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    Button(role: .destructive, action: {
+                        hideTabBar.toggle()
+                    }) {
+                        Label("Hide Tab Bar", systemImage: "eye.slash")
+                    }
                     Button(action: {
                         withAnimation(animation) {
                             currentIndex = 0
@@ -223,10 +230,12 @@ struct FlashcardDeckView: View {
         }
         .onAppear {
             loadSession()
+            hideTabBar.toggle()
         }
         // Update session when leaving the view
         .onDisappear {
             updateSession()
+            hideTabBar.toggle()
             
             // Save card order when leaving if we have cards
             if let session = currentSession, !shuffledCards.isEmpty {
@@ -308,7 +317,7 @@ struct FlashcardDeckView: View {
 
 #Preview {
     NavigationStack {
-        FlashcardDeckView(kanjiSet: KanjiSet(
+        FlashCardView(kanjiSet: KanjiSet(
             level: "N5",
             name: "kata_kerja_n5",
             items: [

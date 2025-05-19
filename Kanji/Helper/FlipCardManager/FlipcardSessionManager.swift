@@ -1,5 +1,5 @@
 //
-//  SessionManager.swift
+//  FlipcardSessionManager.swift
 //  KanjiFlashcard
 //
 //  Created by Muhammad Ardiansyah on 12/05/25.
