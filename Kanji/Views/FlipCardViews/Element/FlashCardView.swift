@@ -55,7 +55,7 @@ struct FlashCardView: View {
                 
                 RoundedRectangle(cornerRadius: 10)
                     .frame(width: progressWidth(currentIndex: currentIndex, total: shuffledCards.count), height: 8)
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(.green)
             }
             .frame(width: UIScreen.main.bounds.width * 0.8)
             .padding(.bottom)

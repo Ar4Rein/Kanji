@@ -58,14 +58,14 @@ struct FlashCardComponentView: View {
                 axis: (x: 0, y: 1, z: 0)
             )
         }
-        .frame(width: 300, height: 400)
+        .frame(width: 330, height: 450)
         .onTapGesture {
             flipCard()
         }
     }
     
     private func flipCard() {
-        withAnimation(.spring(duration: 0.3)) {
+        withAnimation(.spring(duration: 0.1)) {
             isFlipped.toggle()
             degree += 180
         }
