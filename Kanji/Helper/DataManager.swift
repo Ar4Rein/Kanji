@@ -9,22 +9,23 @@ import Foundation
 import SwiftData
 
 class DataManager {
-    static let shared = DataManager()
+    static let shared = DataManager() // Singleton instance.
     
-    private init() {}
+    private init() {} // Private constructor.
     
-    // Data file structure
+    // Struktur data file JSON yang akan diimpor.
     let kanjiFilesInfo: [KanjiFileInfo] = [
         KanjiFileInfo(level: "N5", files: ["kata_kerja_n5.json", "kata_sifat_na_n5.json", "kata_sifat_i_n5.json", "kata_benda_n5.json"]),
         KanjiFileInfo(level: "N4", files: ["kata_kerja_n4.json", "kata_sifat_na_n4.json", "kata_sifat_i_n4.json", "kata_benda_n4.json"]),
         KanjiFileInfo(level: "N3", files: ["kata_kerja_n3.json", "kata_benda_n3_i.json", "kata_benda_n3_ii.json"]),
-        KanjiFileInfo(level: "Dummy", files: ["test_soal_3"])
+        KanjiFileInfo(level: "Dummy", files: ["test_soal_3.json"]) // Ekstensi .json sudah disiapkan
     ]
     
-    // Load JSON data from a file
+    // Fungsi untuk memuat file JSON dari bundle.
     func loadJSON(from filename: String) -> [KanjiJSONData]? {
-        guard let fileURL = Bundle.main.url(forResource: filename.replacingOccurrences(of: ".json", with: ""), withExtension: "json") else {
-            print("Could not find \(filename) in bundle ")
+        let resourceName = filename.replacingOccurrences(of: ".json", with: "")
+        guard let fileURL = Bundle.main.url(forResource: resourceName, withExtension: "json") else {
+            print("❌ Tidak dapat menemukan file \(filename) di dalam bundle aplikasi.")
             return nil
         }
         
@@ -34,14 +35,13 @@ class DataManager {
             let jsonData = try decoder.decode([KanjiJSONData].self, from: data)
             return jsonData
         } catch {
-            print("Error decoding JSON: \(error)")
+            print("❌ Error saat men-decode JSON dari file \(filename): \(error)")
             return nil
         }
     }
     
-    // Check if data already exists in the database
+    // Fungsi untuk mengecek apakah data sudah ada di database.
     func doesDataExist(forLevel level: String, fileName: String, modelContext: ModelContext) -> Bool {
-        // Create a predicate to search for the specific set
         let setName = fileName.replacingOccurrences(of: ".json", with: "")
         let predicate = #Predicate<KanjiSet> { set in
             set.level == level && set.name == setName
@@ -52,56 +52,86 @@ class DataManager {
             let existingSets = try modelContext.fetch(descriptor)
             return !existingSets.isEmpty
         } catch {
-            print("Error checking for existing data: \(error)")
+            print("❌ Error saat memeriksa data yang sudah ada: \(error)")
             return false
         }
     }
     
-    // Import data from all JSON files if needed
+    // Fungsi utama untuk memulai proses impor data jika belum ada di database.
     func importDataIfNeeded(modelContext: ModelContext) {
+        print("📥 Memulai proses pemeriksaan dan impor data...")
         for levelInfo in kanjiFilesInfo {
             for fileName in levelInfo.files {
                 if !doesDataExist(forLevel: levelInfo.level, fileName: fileName, modelContext: modelContext) {
                     importDataFromFile(level: levelInfo.level, fileName: fileName, modelContext: modelContext)
                 } else {
-                    print("Data for \(levelInfo.level) - \(fileName) already exists, skipping import")
+                    print("ℹ️ Data untuk \(levelInfo.level) - \(fileName) sudah ada, impor dilewati.")
                 }
             }
         }
+        print("✅ Proses pemeriksaan dan impor data selesai.")
     }
     
-    // Import data from a specific file
+    // Fungsi untuk mengimpor data dari satu file JSON.
     private func importDataFromFile(level: String, fileName: String, modelContext: ModelContext) {
-        print("Importing data for \(level) - \(fileName)")
+        print("📦 Mengimpor data untuk \(level) - \(fileName)...")
         
-        guard let jsonData = loadJSON(from: fileName) else {
-            print("Failed to load JSON data from \(fileName)")
+        guard let jsonDataArray = loadJSON(from: fileName) else {
+            print("❌ Gagal memuat data JSON dari \(fileName). Impor dibatalkan.")
             return
         }
         
-        // Create a new KanjiSet
         let setName = fileName.replacingOccurrences(of: ".json", with: "")
-        let kanjiSet = KanjiSet(level: level, name: setName)
+        let newKanjiSet = KanjiSet(level: level, name: setName, items: [])
         
-        // Add KanjiCards to the set
-        for item in jsonData {
-            let kanjiCard = Kanji(
+        var importedKanjiCount = 0
+        for item in jsonDataArray {
+            let kanjiItem = Kanji(
                 id: UUID(),
                 kanji: item.questionText,
                 reading: item.option1,
                 meaning: item.answerExplanation
             )
-            kanjiSet.items.append(kanjiCard)
+            newKanjiSet.items.append(kanjiItem)
+            importedKanjiCount += 1
         }
         
-        // Save to the database
-        modelContext.insert(kanjiSet)
+        modelContext.insert(newKanjiSet)
         
         do {
             try modelContext.save()
-            print("Successfully imported \(jsonData.count) cards for \(level) - \(fileName)")
+            if importedKanjiCount > 0 {
+                print("✅ Berhasil mengimpor \(importedKanjiCount) item Kanji untuk \(level) - \(setName).")
+            } else {
+                print("⚠️ File JSON \(fileName) kosong atau tidak ada item valid. KanjiSet tetap dibuat.")
+            }
         } catch {
-            print("Error saving data: \(error)")
+            print("❌ Error saat menyimpan data: \(error)")
+        }
+    }
+
+    // Fungsi tambahan untuk menghapus semua data dari database (opsional tapi penting).
+    func deleteAllKanjiData(modelContext: ModelContext) {
+        print("🗑️ Memulai proses penghapusan semua data KanjiSet...")
+        let descriptor = FetchDescriptor<KanjiSet>()
+        
+        do {
+            let allKanjiSets = try modelContext.fetch(descriptor)
+            
+            if allKanjiSets.isEmpty {
+                print("ℹ️ Tidak ada data KanjiSet untuk dihapus.")
+                return
+            }
+            
+            for kanjiSet in allKanjiSets {
+                modelContext.delete(kanjiSet)
+            }
+            
+            try modelContext.save()
+            print("✅ Berhasil menghapus \(allKanjiSets.count) KanjiSet dan semua Kanji terkait.")
+        } catch {
+            print("❌ Error saat menghapus data: \(error)")
         }
     }
 }
+

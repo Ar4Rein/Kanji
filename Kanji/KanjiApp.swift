@@ -14,7 +14,8 @@ struct KanjiApp: App {
         let schema = Schema([
             KanjiSet.self,
             Kanji.self,
-            UserSessionCardModels.self,
+            FlashCardSessionModels.self,
+            QuizSessionModels.self,
             IndexOrderModels.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)

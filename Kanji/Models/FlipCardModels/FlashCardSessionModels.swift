@@ -10,7 +10,7 @@ import SwiftData
 
 // Model to track user's session information for each kanji set
 @Model
-class UserSessionCardModels {
+class FlashCardSessionModels {
     var setId: String          // Unique identifier for the set (level + name)
     var lastViewedCardIndex: Int
     var completionPercentage: Double

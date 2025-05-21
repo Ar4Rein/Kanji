@@ -13,6 +13,8 @@ struct KanjiSetQuizView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var kanjiSets: [KanjiSet]
     
+    @State private var hideTabBar: Bool = false
+    
     // Grouped kanji sets by level
     private var setsByLevel: [String: [KanjiSet]] {
         Dictionary(grouping: kanjiSets) { $0.level }
@@ -33,18 +35,40 @@ struct KanjiSetQuizView: View {
     }
     
     var body: some View {
-        List {
-            ForEach(sortedLevels, id: \.self) { level in
-                Section(header: Text(level)) {
-                    ForEach(setsByLevel[level] ?? [], id: \.self) { set in
-                        KanjiSetQuizRow(set: set)
+        NavigationStack {
+            List {
+                ForEach(sortedLevels, id: \.self) { level in
+                    Section(header: Text(level)) {
+                        ForEach(setsByLevel[level] ?? [], id: \.self) { set in
+                            NavigationLink(value: set) {
+                                VStack(alignment: .leading) {
+                                    HStack {
+                                        Text(set.name)
+                                            .font(.headline)
+                                        
+                                        Spacer()
+                                        
+                                        Text("\(set.items.count) cards")
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
                     }
                 }
             }
-            
-            
         }
         .navigationTitle("Kanji Quiz Sets")
+        .navigationDestination(for: KanjiSet.self) { kanjiSet in
+            // Pastikan KanjiSet yang diteruskan memiliki item sebelum memulai kuis.
+            if kanjiSet.items.isEmpty {
+                ContentUnavailableView("Set Kosong", systemImage: "tray.fill", description: Text("Set \"\(kanjiSet.name)\" tidak memiliki Kanji untuk dikuiskan."))
+            } else {
+                QuizSetupView(kanjiSet: kanjiSet)
+            }
+        }
         .onAppear {
             ensureDataIsImported()
         }
@@ -56,85 +80,9 @@ struct KanjiSetQuizView: View {
     }
 }
 
-struct KanjiSetQuizRow: View {
-    // Environment
-    @Environment(\.modelContext) private var modelContext
-    
-    // Properties
-    let set: KanjiSet
-    
-    // State
-    @State private var session: UserSessionCardModels?
-    
-    var body: some View {
-        NavigationLink(destination: KanjiQuizView(kanjiSet: set)) {
-            VStack(alignment: .leading) {
-                HStack {
-                    Text(set.name)
-                        .font(.headline)
-                    
-                    Spacer()
-                    
-                    Text("\(set.items.count) cards")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                
-                if let session = session, session.completionPercentage > 0 {
-                    VStack(alignment: .leading, spacing: 4) {
-                        // Progress bar
-                        ProgressView(value: session.completionPercentage)
-                            .tint(.green)
-                            .frame(height: 6)
-                        
-                        // Progress details
-                        HStack {
-                            Text("\(Int(session.completionPercentage * 100))% complete")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            Spacer()
-                            
-                            Text("Last used \(FlipcardSessionManager.shared.formatLastAccessDate(session.lastAccessDate))")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.top, 2)
-                }
-            }
-            .padding(.vertical, 4)
-        }
-        .onAppear {
-            loadSession()
-        }
-    }
-    
-    // Load session data for this set
-    private func loadSession() {
-        // Get the set ID from the session manager
-        let setId = FlipcardSessionManager.shared.generateSetId(for: set)
-        
-        // Fetch session for this set ID
-        let predicate = #Predicate<UserSessionCardModels> { session in
-            session.setId == setId
-        }
-        let descriptor = FetchDescriptor<UserSessionCardModels>(predicate: predicate)
-        
-        do {
-            let existingSessions = try modelContext.fetch(descriptor)
-            if let existingSession = existingSessions.first {
-                session = existingSession
-            }
-        } catch {
-            print("Error fetching session for set \(setId): \(error)")
-        }
-    }
-}
-
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: KanjiSet.self, Kanji.self, UserSessionCardModels.self, configurations: config)
+    let container = try! ModelContainer(for: KanjiSet.self, Kanji.self, FlashCardSessionModels.self, configurations: config)
     
     // Create a sample KanjiSet with cards for preview
     let exampleSet1 = KanjiSet(level: "N5", name: "Kata Kerja N5")
@@ -162,7 +110,7 @@ struct KanjiSetQuizRow: View {
     modelContext.insert(exampleSet3)
     
     // Create a sample session
-    let session = UserSessionCardModels(setId: "N5_Kata Kerja N5", lastViewedCardIndex: 1, completionPercentage: 0.5)
+    let session = FlashCardSessionModels(setId: "N5_Kata Kerja N5", lastViewedCardIndex: 1, completionPercentage: 0.5)
     modelContext.insert(session)
     
     return NavigationStack {

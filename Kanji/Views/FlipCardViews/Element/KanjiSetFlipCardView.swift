@@ -12,6 +12,7 @@ struct KanjiSetFlipCardView: View {
     // Environment
     @Environment(\.modelContext) private var modelContext
     @Query private var kanjiSets: [KanjiSet]
+    
     @State private var hideTabBar: Bool = false
     
     // Grouped kanji sets by level
@@ -43,8 +44,6 @@ struct KanjiSetFlipCardView: View {
                     }
                 }
             }
-            
-            
         }
         .navigationTitle("Kanji Flash Card Sets")
         .onAppear {
@@ -66,7 +65,7 @@ struct KanjiSetFlipCardRow: View {
     let set: KanjiSet
     
     // State
-    @State private var session: UserSessionCardModels?
+    @State private var session: FlashCardSessionModels?
     
     var body: some View {
         NavigationLink(destination: FlashCardView(kanjiSet: set)) {
@@ -118,10 +117,10 @@ struct KanjiSetFlipCardRow: View {
         let setId = FlipcardSessionManager.shared.generateSetId(for: set)
         
         // Fetch session for this set ID
-        let predicate = #Predicate<UserSessionCardModels> { session in
+        let predicate = #Predicate<FlashCardSessionModels> { session in
             session.setId == setId
         }
-        let descriptor = FetchDescriptor<UserSessionCardModels>(predicate: predicate)
+        let descriptor = FetchDescriptor<FlashCardSessionModels>(predicate: predicate)
         
         do {
             let existingSessions = try modelContext.fetch(descriptor)
@@ -136,7 +135,7 @@ struct KanjiSetFlipCardRow: View {
 
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: KanjiSet.self, Kanji.self, UserSessionCardModels.self, configurations: config)
+    let container = try! ModelContainer(for: KanjiSet.self, Kanji.self, FlashCardSessionModels.self, configurations: config)
     
     // Create a sample KanjiSet with cards for preview
     let exampleSet1 = KanjiSet(level: "N5", name: "Kata Kerja N5")
@@ -164,7 +163,7 @@ struct KanjiSetFlipCardRow: View {
     modelContext.insert(exampleSet3)
     
     // Create a sample session
-    let session = UserSessionCardModels(setId: "N5_Kata Kerja N5", lastViewedCardIndex: 1, completionPercentage: 0.5)
+    let session = FlashCardSessionModels(setId: "N5_Kata Kerja N5", lastViewedCardIndex: 1, completionPercentage: 0.5)
     modelContext.insert(session)
     
     return NavigationStack {

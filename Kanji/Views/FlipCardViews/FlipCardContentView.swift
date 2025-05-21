@@ -10,7 +10,7 @@ import SwiftData
 
 struct FlipCardContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query var sessions: [UserSessionCardModels]
+    @Query var sessions: [FlashCardSessionModels]
     @State private var tab: AppTab = .quiz
     @State private var isLoading = true
     @State private var showConfirmClearAll = false
@@ -91,5 +91,5 @@ struct FlipCardContentView: View {
 
 #Preview {
     FlipCardContentView()
-        .modelContainer(for: [KanjiSet.self, UserSessionCardModels.self, IndexOrderModels.self], inMemory: true)
+        .modelContainer(for: [KanjiSet.self, FlashCardSessionModels.self, IndexOrderModels.self], inMemory: true)
 }

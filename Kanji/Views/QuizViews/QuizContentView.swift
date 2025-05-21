@@ -10,7 +10,7 @@ import SwiftData
 
 struct QuizContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query var sessions: [UserSessionCardModels]
+    @Query var sessions: [QuizSessionModels]
     @State private var tab: AppTab = .quiz
     @State private var isLoading = true
     @State private var showConfirmClearAll = false
@@ -51,7 +51,7 @@ struct QuizContentView: View {
                     .alert("Clear All Progress?", isPresented: $showConfirmClearAll) {
                         Button("Cancel", role: .cancel) {}
                         Button("Clear", role: .destructive) {
-                            clearAllSessions()
+                            
                         }
                     } message: {
                         Text("This will reset progress for all kanji sets. This action cannot be undone.")
@@ -84,11 +84,6 @@ struct QuizContentView: View {
         // Mark loading as complete
         isLoading = false
     }
-
-    private func clearAllSessions() {
-        FlipcardSessionManager.shared.clearAllSessions(modelContext: modelContext)
-    }
-
 }
 
 //#Preview {

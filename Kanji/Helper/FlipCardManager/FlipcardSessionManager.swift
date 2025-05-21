@@ -20,14 +20,14 @@ class FlipcardSessionManager {
     }
     
     // Fetch or create a session for the given kanji set
-    func getOrCreateSession(for set: KanjiSet, modelContext: ModelContext) -> UserSessionCardModels {
+    func getOrCreateSession(for set: KanjiSet, modelContext: ModelContext) -> FlashCardSessionModels {
         let setId = generateSetId(for: set)
         
         // Try to find existing session
-        let predicate = #Predicate<UserSessionCardModels> { session in
+        let predicate = #Predicate<FlashCardSessionModels> { session in
             session.setId == setId
         }
-        let descriptor = FetchDescriptor<UserSessionCardModels>(predicate: predicate)
+        let descriptor = FetchDescriptor<FlashCardSessionModels>(predicate: predicate)
         
         do {
             let existingSessions = try modelContext.fetch(descriptor)
@@ -41,7 +41,7 @@ class FlipcardSessionManager {
         }
         
         // Create new session if none exists
-        let newSession = UserSessionCardModels(setId: setId)
+        let newSession = FlashCardSessionModels(setId: setId)
         modelContext.insert(newSession)
         
         do {
@@ -54,7 +54,7 @@ class FlipcardSessionManager {
     }
     
     // Update session data
-    func updateSession(session: UserSessionCardModels, currentIndex: Int, totalCards: Int, modelContext: ModelContext) {
+    func updateSession(session: FlashCardSessionModels, currentIndex: Int, totalCards: Int, modelContext: ModelContext) {
         session.lastViewedCardIndex = currentIndex
         session.completionPercentage = min(Double(currentIndex + 1) / Double(totalCards), 1.0)
         session.lastAccessDate = Date()
@@ -80,10 +80,10 @@ class FlipcardSessionManager {
     
     // Clear a session by its ID
     private func clearSessionWithId(setId: String, modelContext: ModelContext) {
-        let predicate = #Predicate<UserSessionCardModels> { session in
+        let predicate = #Predicate<FlashCardSessionModels> { session in
             session.setId == setId
         }
-        let descriptor = FetchDescriptor<UserSessionCardModels>(predicate: predicate)
+        let descriptor = FetchDescriptor<FlashCardSessionModels>(predicate: predicate)
         
         do {
             let existingSessions = try modelContext.fetch(descriptor)
@@ -99,7 +99,7 @@ class FlipcardSessionManager {
     
     // Clear all sessions
     func clearAllSessions(modelContext: ModelContext) {
-        let descriptor = FetchDescriptor<UserSessionCardModels>()
+        let descriptor = FetchDescriptor<FlashCardSessionModels>()
         
         do {
             let allSessions = try modelContext.fetch(descriptor)
@@ -202,10 +202,10 @@ class FlipcardSessionManager {
     
     // Update the hasOrderSaved flag on a session
     private func updateSessionOrderFlag(sessionId: String, hasOrder: Bool, modelContext: ModelContext) {
-        let predicate = #Predicate<UserSessionCardModels> { session in
+        let predicate = #Predicate<FlashCardSessionModels> { session in
             session.setId == sessionId
         }
-        let descriptor = FetchDescriptor<UserSessionCardModels>(predicate: predicate)
+        let descriptor = FetchDescriptor<FlashCardSessionModels>(predicate: predicate)
         
         do {
             let sessions = try modelContext.fetch(descriptor)
