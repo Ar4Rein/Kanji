@@ -8,47 +8,42 @@
 // Views/TextInputQuizView.swift
 import SwiftUI
 
-// View untuk menampilkan kuis mode input teks.
 struct TextInputQuizView: View {
-    let kanjiSet: KanjiSet // KanjiSet yang sedang dikuiskan.
-    @Environment(\.modelContext) private var modelContext // Konteks SwiftData.
-    @Environment(\.dismiss) private var dismiss // Aksi untuk menutup view.
+    let kanjiSet: KanjiSet
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
 
-    // State untuk data sesi dan pertanyaan.
     @State private var quizSession: QuizSessionModels?
     @State private var currentQuestion: QuizTextInputQuestion?
     @State private var allQuestions: [QuizTextInputQuestion] = []
 
-    // State untuk interaksi UI.
-    @State private var userAnswer: String = ""           // Teks jawaban dari pengguna.
-    @State private var showFeedback = false             // Apakah feedback ditampilkan.
-    @State private var feedbackMessage = ""             // Pesan feedback.
-    @State private var isAnswerCorrect: Bool? = nil    // Apakah jawaban terakhir benar.
-    @State private var isLoading = true                 // Apakah data kuis dimuat.
-    @State private var isQuizFinished = false           // Apakah kuis selesai.
-    @FocusState private var isTextFieldFocused: Bool    // Untuk mengontrol fokus pada TextField.
+    @State private var userAnswer: String = ""
+    @State private var showFeedback = false
+    @State private var feedbackMessage = ""
+    @State private var isAnswerCorrect: Bool? = nil
+    @State private var isLoading = true
+    @State private var isQuizFinished = false
+    @FocusState private var isTextFieldFocused: Bool
 
     @State private var hideTabBar: Bool = false
-    
+    @State private var hiraganaOnlyMode: Bool = false // <-- STATE BARU untuk toggle
+
     var body: some View {
         VStack(spacing: 15) {
             if isLoading {
-                ProgressView("Memuat Kuis Input Teks...") // Tampilan loading.
+                ProgressView("Memuat Kuis Input Teks...")
             } else if isQuizFinished, let session = quizSession {
-                // Tampilan ketika kuis selesai.
                 QuizCompletionView(session: session, onRestart: restartQuiz, onDismiss: { dismiss() })
             } else if let question = currentQuestion, let session = quizSession {
-                // Tampilan utama kuis.
-                QuizHeaderView(session: session) // Header info soal dan skor.
+                QuizHeaderView(session: session)
 
-                Text(question.questionText) // Teks pertanyaan.
+                Text(question.questionText)
                     .font(.title2)
                     .fontWeight(.medium)
                     .multilineTextAlignment(.center)
                     .padding()
                     .minimumScaleFactor(0.7)
 
-                // TextField untuk input jawaban pengguna.
                 TextField("Ketik jawabanmu di sini", text: $userAnswer)
                     .textFieldStyle(.roundedBorder)
                     .padding(.horizontal)
@@ -66,13 +61,10 @@ struct TextInputQuizView: View {
                 Spacer()
 
                 if showFeedback {
-                    // Tampilan feedback.
-                    VStack { // Gunakan VStack untuk menata pesan feedback.
+                    VStack {
                         Text(feedbackMessage)
                             .font(.headline)
                             .foregroundColor(isAnswerCorrect == true ? .green : .red)
-                        // Tampilkan arti Kanji jika ada dan belum termasuk di feedbackMessage utama.
-                        // (Sudah dimodifikasi agar feedbackMessage mengandung arti)
                     }
                     .padding(.vertical)
                     
@@ -82,7 +74,6 @@ struct TextInputQuizView: View {
                     .buttonStyle(.borderedProminent)
                     .padding(.bottom)
                 } else {
-                    // Tombol untuk memeriksa jawaban.
                     Button("Periksa Jawaban") {
                         checkAnswer()
                         isTextFieldFocused = false
@@ -92,8 +83,7 @@ struct TextInputQuizView: View {
                     .padding(.bottom)
                 }
             } else {
-                // Tampilan jika tidak ada pertanyaan atau error.
-                Text("Tidak ada pertanyaan tersedia atau kuis telah selesai.")
+                Text(allQuestions.isEmpty && !isLoading ? "Tidak ada pertanyaan yang dapat ditampilkan dengan mode filter saat ini." : "Tidak ada pertanyaan tersedia atau kuis telah selesai.")
                 Button("Kembali") { dismiss() }
             }
         }
@@ -103,41 +93,54 @@ struct TextInputQuizView: View {
                 Menu {
                     Button(role: .destructive, action: {
                         hideTabBar.toggle()
-                        print("hide the tabbar")
+                        // print("hide the tabbar") // Komentar bisa dihapus jika tidak perlu
                     }) {
                         Label("Hide Tab Bar", systemImage: "eye.slash")
                     }
+
+                    // <-- TOGGLE BARU DITAMBAHKAN DI SINI -->
+                    Toggle(isOn: $hiraganaOnlyMode) {
+                        Text("Mode Hiragana Saja")
+                    }
+                    
                 } label: {
-                    Image(systemName: "ellipsis")
+                    Image(systemName: "ellipsis.circle") // Menggunakan ikon yang lebih umum untuk menu
                 }
             }
         }
+        .onChange(of: hiraganaOnlyMode) { // <-- DETEKSI PERUBAHAN TOGGLE
+            print("Mode Hiragana Saja diubah menjadi: \(hiraganaOnlyMode). Memulai ulang kuis.")
+            restartQuiz() // Panggil restartQuiz untuk memuat ulang soal dengan mode baru
+        }
         .onAppear {
-            hideTabBar.toggle()
-            setupQuiz()
+            // hideTabBar.toggle() // Perilaku asli, mungkin perlu disesuaikan jika tidak ingin toggle otomatis
+            if !hideTabBar { // Hanya toggle jika belum disembunyikan, atau sesuaikan logikanya
+                hideTabBar = true
+            }
+            setupQuiz() // Panggilan awal setupQuiz
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                 isTextFieldFocused = true
+                isTextFieldFocused = true
             }
         }
         .navigationTitle("Kuis: \(kanjiSet.name)")
         .navigationBarTitleDisplayMode(.inline)
-        .hideFloatingTabBar(hideTabBar)
+        .hideFloatingTabBar(hideTabBar) // Pastikan extension ini ada dan berfungsi
     }
 
-    // Fungsi untuk menyiapkan data kuis.
     func setupQuiz() {
         isLoading = true
         isQuizFinished = false
         let sessionManager = QuizSessionManager.shared
+        // Pastikan sesi diambil atau dibuat dengan benar
         let session = sessionManager.getOrCreateSession(for: kanjiSet, mode: .textInput, modelContext: modelContext)
         self.quizSession = session
 
         var orderedKanjis: [Kanji]
         if session.hasQuestionOrderSaved,
            let loadedOrder = sessionManager.loadQuizQuestionOrder(
-                forQuizSessionId: session.sessionId,
-                availableKanjis: kanjiSet.items,
-                modelContext: modelContext
+               forQuizSessionId: session.sessionId,
+               availableKanjis: kanjiSet.items,
+               modelContext: modelContext
            ) {
             orderedKanjis = loadedOrder
         } else {
@@ -147,50 +150,86 @@ struct TextInputQuizView: View {
                 orderedKanjiIds: orderedKanjis.map { $0.id.uuidString },
                 modelContext: modelContext
             )
-             if !session.hasQuestionOrderSaved || session.currentQuestionIndex >= orderedKanjis.count {
-                 session.currentQuestionIndex = 0; session.score = 0; session.correctAnswers = 0; session.incorrectAnswers = 0; session.answeredQuestionIds = []
-                 try? modelContext.save()
-             }
+            if !session.hasQuestionOrderSaved || session.currentQuestionIndex >= orderedKanjis.count {
+                session.currentQuestionIndex = 0; session.score = 0; session.correctAnswers = 0; session.incorrectAnswers = 0; session.answeredQuestionIds = []
+                // Tidak perlu save context di sini karena saveQuizQuestionOrder sudah melakukannya,
+                // atau akan dilakukan di akhir getOrCreateSession.
+            }
         }
-         if session.totalQuestions != orderedKanjis.count {
+        
+        // Sinkronkan totalQuestions di session object dengan jumlah kanji yang akan di-generate soalnya (sebelum filter)
+        // QuizSessionManager.getOrCreateSession sudah mengatur ini berdasarkan set.items.count
+        // Blok ini mungkin untuk menangani perubahan pada orderedKanjis jika berbeda dari set.items.count
+        if session.totalQuestions != orderedKanjis.count {
              session.totalQuestions = orderedKanjis.count
              if session.currentQuestionIndex >= session.totalQuestions && session.totalQuestions > 0 {
                  session.currentQuestionIndex = session.totalQuestions - 1
              } else if session.totalQuestions == 0 {
                  session.currentQuestionIndex = 0
              }
-             try? modelContext.save()
         }
 
-        self.allQuestions = QuizGenerator().generateAllTextInputQuestions(fromKanjis: orderedKanjis)
-        
-        if self.allQuestions.isEmpty && !orderedKanjis.isEmpty {
-            print("Gagal menghasilkan pertanyaan Input Teks meskipun ada Kanji terurut. Periksa QuizGenerator.")
+        // <-- DIMODIFIKASI: Gunakan `hiraganaOnlyMode` saat generate soal -->
+        self.allQuestions = QuizGenerator().generateAllTextInputQuestions(fromKanjis: orderedKanjis, hiraganaOnly: self.hiraganaOnlyMode)
+
+        // Update totalQuestions di session agar sesuai dengan jumlah soal aktual setelah filter
+        if session.totalQuestions != self.allQuestions.count {
+            // print("Menyesuaikan total pertanyaan sesi dari \(session.totalQuestions) menjadi \(self.allQuestions.count) karena mode filter: \(self.hiraganaOnlyMode ? "Hiragana Saja" : "Campuran")")
+            session.totalQuestions = self.allQuestions.count
+            // Jika indeks saat ini di luar batas setelah jumlah soal berkurang
+            if session.currentQuestionIndex >= session.totalQuestions {
+                session.currentQuestionIndex = max(0, session.totalQuestions - 1)
+            }
         }
+        
+        if self.allQuestions.isEmpty {
+            isQuizFinished = true // Langsung selesai jika tidak ada soal yang bisa dibuat
+            if !orderedKanjis.isEmpty { // Hanya tampilkan pesan jika memang ada kanji di set
+                let modeInfo = self.hiraganaOnlyMode ? " (Mode Hiragana Saja)" : ""
+                print("Tidak ada pertanyaan yang dapat dihasilkan\(modeInfo). Pastikan Kanji memiliki data yang sesuai atau ubah mode filter.")
+            }
+        } else {
+             isQuizFinished = false // Ada soal, kuis belum selesai
+        }
+
+        // Logika untuk menentukan apakah kuis selesai atau lanjut ke pertanyaan berikutnya
+        // Ini penting setelah session.totalQuestions mungkin diubah menjadi allQuestions.count
+        if !self.allQuestions.isEmpty && session.currentQuestionIndex >= self.allQuestions.count {
+             // Jika indeks saat ini (mungkin dari sesi lama) sudah melebihi jumlah soal baru
+             session.currentQuestionIndex = self.allQuestions.count - 1 // Set ke soal terakhir yang valid
+        }
+
 
         if session.currentQuestionIndex >= session.totalQuestions && session.totalQuestions > 0 {
             isQuizFinished = true
+        } else if session.totalQuestions == 0 { // Jika tidak ada soal sama sekali
+             isQuizFinished = true
         } else {
             updateCurrentQuestion()
         }
+        
+        // Pastikan perubahan pada session (seperti totalQuestions, currentQuestionIndex) disimpan jika perlu.
+        // QuizSessionManager biasanya menangani penyimpanan saat update signifikan.
+        // Untuk perubahan lokal seperti totalQuestions karena filter, mungkin tidak perlu save permanen
+        // kecuali diinginkan. `restartQuiz` akan menyimpan perubahan state sesi yang di-reset.
+        try? modelContext.save() // Simpan perubahan pada session jika ada.
+
         isLoading = false
     }
 
-    // Memperbarui state `currentQuestion` dan UI terkait.
     func updateCurrentQuestion() {
         guard let unwrappedQuizSession = quizSession, !allQuestions.isEmpty else {
             currentQuestion = nil
-            if (quizSession?.totalQuestions ?? 0) > 0 {
-                isQuizFinished = true
-            }
+            isQuizFinished = true // Jika tidak ada soal (allQuestions kosong), kuis selesai.
             return
         }
+
         if unwrappedQuizSession.currentQuestionIndex < allQuestions.count && unwrappedQuizSession.currentQuestionIndex < unwrappedQuizSession.totalQuestions {
             currentQuestion = allQuestions[unwrappedQuizSession.currentQuestionIndex]
             userAnswer = ""
             showFeedback = false
             isAnswerCorrect = nil
-            isQuizFinished = false
+            // isQuizFinished = false // Tidak perlu di-set false di sini, karena bisa jadi ini soal terakhir
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 isTextFieldFocused = true
             }
@@ -200,19 +239,18 @@ struct TextInputQuizView: View {
         }
     }
 
-    // Memeriksa jawaban pengguna.
     func checkAnswer() {
         guard let question = currentQuestion, let session = quizSession else { return }
 
         let trimmedUserAnswer = userAnswer.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Pertimbangkan normalisasi kana jika diperlukan (misalnya, Full-width vs Half-width)
         let isCorrect = trimmedUserAnswer.lowercased() == question.correctAnswerString.lowercased()
 
         self.isAnswerCorrect = isCorrect
         showFeedback = true
 
-        // MODIFIKASI: feedbackMessage sekarang selalu menyertakan arti Kanji.
         let kanjiMeaning = question.kanjiSource.meaning.isEmpty ? "Tidak ada arti" : question.kanjiSource.meaning
-        let kanjiCharacter = question.kanjiSource.kanji // Ambil karakter Kanji
+        let kanjiCharacter = question.kanjiSource.kanji
 
         if isCorrect {
             feedbackMessage = "Benar! ✅\nArti \"\(kanjiCharacter)\": \(kanjiMeaning)"
@@ -224,10 +262,10 @@ struct TextInputQuizView: View {
         QuizSessionManager.shared.updateSession(session: session, answeredCorrectly: isCorrect, modelContext: modelContext)
     }
 
-    // Pindah ke pertanyaan berikutnya atau menyelesaikan kuis.
     func proceedToNextQuestionOrFinish() {
         guard let session = quizSession else { return }
-        if session.currentQuestionIndex + 1 >= session.totalQuestions {
+        // Gunakan allQuestions.count sebagai batas atas yang sebenarnya untuk pertanyaan yang tersedia
+        if session.currentQuestionIndex + 1 >= allQuestions.count {
             isQuizFinished = true
             isTextFieldFocused = false
         } else {
@@ -236,22 +274,28 @@ struct TextInputQuizView: View {
         }
     }
     
-    // Mengulang kuis dari awal.
     func restartQuiz() {
-        guard let session = quizSession else { return }
+        guard let session = quizSession else {
+            // Jika sesi tidak ada, coba setup dari awal
+            setupQuiz()
+            return
+        }
         session.currentQuestionIndex = 0
         session.score = 0
         session.correctAnswers = 0
         session.incorrectAnswers = 0
         session.answeredQuestionIds = []
-        session.hasQuestionOrderSaved = false
+        session.hasQuestionOrderSaved = false // Penting agar urutan soal di-generate ulang
+        
+        // Hapus urutan soal lama yang tersimpan
+        QuizSessionManager.shared.clearQuizQuestionOrder(forQuizSessionId: session.sessionId, modelContext: modelContext, shouldSaveContext: false) // Jangan save dulu
+        
         do {
-            try modelContext.save()
-            QuizSessionManager.shared.clearQuizQuestionOrder(forQuizSessionId: session.sessionId, modelContext: modelContext)
+            try modelContext.save() // Simpan perubahan reset pada sesi
         } catch {
             print("Error saat menyimpan sesi untuk restart Input Teks: \(error)")
         }
+        // setupQuiz akan dipanggil dan menggunakan hiraganaOnlyMode yang baru
         setupQuiz()
     }
 }
-
