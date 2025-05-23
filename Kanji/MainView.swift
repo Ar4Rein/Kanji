@@ -32,7 +32,7 @@ struct MainView: View {
             switch tab {
             case.flipcard: FlipCardContentView()
             case.quiz: QuizContentView()
-            case.kanji: Text("Kanji")
+            case.kanji: ListContentView()
             case.about: Text("About")
             }
         }
