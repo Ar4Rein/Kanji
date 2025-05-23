@@ -12,7 +12,7 @@ struct QuizContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query var sessions: [QuizSessionModels]
     @State private var tab: AppTab = .quiz
-    @State private var isLoading = true
+    @State private var isLoading = false
     @State private var showConfirmClearAll = false
     @State private var hideTabBar: Bool = false
     
@@ -59,9 +59,6 @@ struct QuizContentView: View {
             }
         }
         .hideFloatingTabBar(hideTabBar)
-        .task {
-            await importData()
-        }
     }
     
     private var loadingView: some View {
@@ -72,17 +69,6 @@ struct QuizContentView: View {
             Text("Loading Kanji Data...")
                 .font(.headline)
         }
-    }
-
-    private func importData() async {
-        // Simulate a slight delay for UI feedback
-        try? await Task.sleep(nanoseconds: 1_500_000_000)
-        
-        // Import data if needed
-        DataManager.shared.importDataIfNeeded(modelContext: modelContext)
-        
-        // Mark loading as complete
-        isLoading = false
     }
 }
 

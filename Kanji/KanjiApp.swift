@@ -10,27 +10,35 @@ import SwiftData
 
 @main
 struct KanjiApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            KanjiSet.self,
-            Kanji.self,
-            FlashCardSessionModels.self,
-            QuizSessionModels.self,
-            IndexOrderModels.self
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
+    let modelContainer: ModelContainer
+    @StateObject private var dataManager = DataManager.shared
+    
+    init() {
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            // Daftarkan semua model SwiftData Anda di sini
+            modelContainer = try ModelContainer(for: KanjiSet.self,
+                                                Kanji.self,
+                                                FlashCardSessionModels.self,
+                                                QuizSessionModels.self,
+                                                IndexOrderModels.self)
+            print("✅ ModelContainer berhasil diinisialisasi.")
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            fatalError("❌ Gagal menginisialisasi ModelContainer: \(error)")
         }
-    }()
+    }
 
     var body: some Scene {
         WindowGroup {
             MainView()
+                .onAppear {
+                    Task {
+                        await MainActor.run {
+                            print("ℹ️ ContentView.onAppear: Memeriksa dan mengimpor data...")
+                            dataManager.importDataIfNeeded(modelContext: modelContainer.mainContext)
+                        }
+                    }
+                }
         }
-        .modelContainer(sharedModelContainer)
+        .modelContainer(modelContainer)
     }
 }

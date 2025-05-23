@@ -35,26 +35,24 @@ struct KanjiSetQuizView: View {
     }
     
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(sortedLevels, id: \.self) { level in
-                    Section(header: Text(level)) {
-                        ForEach(setsByLevel[level] ?? [], id: \.self) { set in
-                            NavigationLink(value: set) {
-                                VStack(alignment: .leading) {
-                                    HStack {
-                                        Text(set.name)
-                                            .font(.headline)
-                                        
-                                        Spacer()
-                                        
-                                        Text("\(set.items.count) cards")
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                    }
+        List {
+            ForEach(sortedLevels, id: \.self) { level in
+                Section(header: Text(level)) {
+                    ForEach(setsByLevel[level] ?? [], id: \.self) { set in
+                        NavigationLink(value: set) {
+                            VStack(alignment: .leading) {
+                                HStack {
+                                    Text(set.name)
+                                        .font(.headline)
+                                    
+                                    Spacer()
+                                    
+                                    Text("\(set.items.count) cards")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
                                 }
-                                .padding(.vertical, 4)
                             }
+                            .padding(.vertical, 4)
                         }
                     }
                 }
@@ -68,9 +66,6 @@ struct KanjiSetQuizView: View {
             } else {
                 QuizSetupView(kanjiSet: kanjiSet)
             }
-        }
-        .onAppear {
-            ensureDataIsImported()
         }
     }
     

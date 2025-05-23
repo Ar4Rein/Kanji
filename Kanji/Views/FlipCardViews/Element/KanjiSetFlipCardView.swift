@@ -46,9 +46,6 @@ struct KanjiSetFlipCardView: View {
             }
         }
         .navigationTitle("Kanji Flash Card Sets")
-        .onAppear {
-            ensureDataIsImported()
-        }
     }
     
     // Ensure the data is imported when the view first appears
