@@ -59,6 +59,7 @@ struct KanjiSetQuizView: View {
             }
         }
         .navigationTitle("Kanji Quiz Sets")
+        .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(for: KanjiSet.self) { kanjiSet in
             // Pastikan KanjiSet yang diteruskan memiliki item sebelum memulai kuis.
             if kanjiSet.items.isEmpty {

@@ -95,7 +95,7 @@ struct FloatingTabConfig {
     var insetAmount: CGFloat = 6
     var isTranslucent: Bool = true
     var hPadding: CGFloat = 20
-    var bPadding: CGFloat = 80
+    var bPadding: CGFloat = 60
 }
 
 fileprivate struct FloatingTabBar<Value: CaseIterable & Hashable & FloatingTabProtocol>: View where Value.AllCases: RandomAccessCollection {

@@ -103,6 +103,7 @@ struct KanjiSetFlipCardRow: View {
             }
             .padding(.vertical, 4)
         }
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             loadSession()
         }

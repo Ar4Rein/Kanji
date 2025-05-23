@@ -15,11 +15,13 @@ struct KanjiLevelView: View {
 
     // Query untuk KanjiSet khusus level ini, diurutkan berdasarkan nama (jenis)
     @Query private var kanjiSetsForLevel: [KanjiSet]
-
+    
     // State untuk filter internal di dalam tab ini
     @State private var selectedSetName: String? // Untuk filter "jenis" (nama KanjiSet)
     @State private var searchText: String = ""
 
+    @State private var hideTabBar: Bool = false
+    
     // Initializer untuk mengkonfigurasi query secara dinamis berdasarkan level
     init(level: String) {
         self.level = level
@@ -90,7 +92,7 @@ struct KanjiLevelView: View {
 
     var body: some View {
         // NavigationView memungkinkan judul dan potensi navigasi ke detail Kanji
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) { // Mengurangi spacing default antar elemen VStack
                 // Kontrol Filter
                 VStack(spacing: 10) { // VStack untuk grup filter
@@ -126,11 +128,26 @@ struct KanjiLevelView: View {
                     List(filteredKanjiItems) { kanji in
                         KanjiRow(kanji: kanji)
                     }
-                    .listStyle(.plain) // Gaya list yang lebih sederhana
+                    .listStyle(.insetGrouped)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Menu {
+                                Button(role: .destructive, action: {
+                                    hideTabBar.toggle()
+                                    print("hide the tabbar")
+                                }) {
+                                    Label("Hide Tab Bar", systemImage: "eye.slash")
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis")
+                            }
+                        }
+                    }// Gaya list yang lebih sederhana
                 }
             }
             .navigationTitle("Kanji Level \(level)")
             .navigationBarTitleDisplayMode(.inline) // Judul yang lebih kecil
+            .hideFloatingTabBar(hideTabBar)
         }
         // Penting untuk iPad agar tidak default ke split view jika ini adalah root scene tab
         // .navigationViewStyle(.stack) // Deprecated, gunakan NavigationStack jika diperlukan navigasi lebih dalam
