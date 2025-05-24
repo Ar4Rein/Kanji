@@ -9,6 +9,7 @@ import Foundation
 import SwiftData
 
 // Class to manage user sessions
+@MainActor // <--- TAMBAHKAN INI
 class FlipcardSessionManager {
     static let shared = FlipcardSessionManager()
     
@@ -23,29 +24,28 @@ class FlipcardSessionManager {
     func getOrCreateSession(for set: KanjiSet, modelContext: ModelContext) -> FlashCardSessionModels {
         let setId = generateSetId(for: set)
         
-        // Try to find existing session
         let predicate = #Predicate<FlashCardSessionModels> { session in
             session.setId == setId
         }
         let descriptor = FetchDescriptor<FlashCardSessionModels>(predicate: predicate)
         
         do {
-            let existingSessions = try modelContext.fetch(descriptor)
-            if let existingSession = existingSessions.first {
-                // Update last access date
+            if let existingSession = try modelContext.fetch(descriptor).first {
                 existingSession.lastAccessDate = Date()
+                // Pertimbangkan untuk save di sini jika pembaruan lastAccessDate selalu ingin segera disimpan.
+                // Namun, untuk konsistensi, save bisa ditangani oleh pemanggil atau di akhir operasi yang lebih besar.
+                // if modelContext.hasChanges { try? modelContext.save() }
                 return existingSession
             }
         } catch {
             print("Error fetching session: \(error)")
         }
         
-        // Create new session if none exists
         let newSession = FlashCardSessionModels(setId: setId)
         modelContext.insert(newSession)
         
         do {
-            try modelContext.save()
+            try modelContext.save() // Save saat membuat sesi baru
         } catch {
             print("Error saving new session: \(error)")
         }
@@ -55,88 +55,132 @@ class FlipcardSessionManager {
     
     // Update session data
     func updateSession(session: FlashCardSessionModels, currentIndex: Int, totalCards: Int, modelContext: ModelContext) {
+        guard totalCards > 0 else {
+            print("Error updating session: totalCards is zero.")
+            return
+        }
         session.lastViewedCardIndex = currentIndex
         session.completionPercentage = min(Double(currentIndex + 1) / Double(totalCards), 1.0)
         session.lastAccessDate = Date()
         
-        do {
-            try modelContext.save()
-            print("Session updated: \(session.setId), Card: \(currentIndex), Completion: \(session.completionPercentage * 100)%")
-        } catch {
-            print("Error updating session: \(error)")
+        if modelContext.hasChanges {
+            do {
+                try modelContext.save()
+                print("Session updated: \(session.setId), Card: \(currentIndex), Completion: \(String(format: "%.2f", session.completionPercentage * 100))%")
+            } catch {
+                print("Error updating session: \(error)")
+            }
         }
     }
     
-    // Clear session data for a set (e.g., when user completes the set)
+    // Clear session data for a set
     func clearSession(for set: KanjiSet, modelContext: ModelContext) {
         let setId = generateSetId(for: set)
         
-        // Clear session
-        clearSessionWithId(setId: setId, modelContext: modelContext)
+        clearSessionWithId(setId: setId, modelContext: modelContext, shouldSave: false)
+        clearCardOrder(for: setId, modelContext: modelContext, shouldSave: false)
         
-        // Also clear the card order
-        clearCardOrder(for: setId, modelContext: modelContext)
+        if modelContext.hasChanges {
+            do {
+                try modelContext.save()
+                print("Session and card order cleared for \(setId) and saved.")
+            } catch {
+                print("Error saving after clearing session and card order for \(setId): \(error)")
+            }
+        }
     }
     
     // Clear a session by its ID
-    private func clearSessionWithId(setId: String, modelContext: ModelContext) {
+    private func clearSessionWithId(setId: String, modelContext: ModelContext, shouldSave: Bool = true) {
         let predicate = #Predicate<FlashCardSessionModels> { session in
             session.setId == setId
         }
-        let descriptor = FetchDescriptor<FlashCardSessionModels>(predicate: predicate)
-        
         do {
-            let existingSessions = try modelContext.fetch(descriptor)
-            if let existingSession = existingSessions.first {
-                modelContext.delete(existingSession)
+            try modelContext.delete(model: FlashCardSessionModels.self, where: predicate)
+            print("Session data marked for deletion for setId: \(setId)")
+            if shouldSave && modelContext.hasChanges {
                 try modelContext.save()
-                print("Session cleared for \(setId)")
+                print("Session data cleared and saved for setId: \(setId)")
             }
         } catch {
-            print("Error clearing session: \(error)")
+            print("Error clearing session with ID \(setId): \(error)")
         }
     }
     
     // Clear all sessions
     func clearAllSessions(modelContext: ModelContext) {
-        let descriptor = FetchDescriptor<FlashCardSessionModels>()
-        
+        var allSetIds: [String] = []
         do {
-            let allSessions = try modelContext.fetch(descriptor)
+            // Fetch semua sesi untuk mendapatkan setIds dan untuk dihapus
+            let allSessions = try modelContext.fetch(FetchDescriptor<FlashCardSessionModels>())
+            if allSessions.isEmpty {
+                print("No sessions to clear.")
+                return
+            }
+            allSetIds = allSessions.map { $0.setId }
+            
             for session in allSessions {
                 modelContext.delete(session)
-                
-                // Also clear card order for this session
-                clearCardOrder(for: session.setId, modelContext: modelContext)
             }
-            
-            try modelContext.save()
-            print("All sessions cleared")
+            print("All session models marked for deletion.")
+
         } catch {
-            print("Error clearing all sessions: \(error)")
+            print("Error fetching sessions for deletion: \(error)")
+            return // Keluar jika tidak bisa fetch sesi
+        }
+
+        // Hapus semua IndexOrderModels yang terkait atau semua jika tidak ada ID spesifik
+        if !allSetIds.isEmpty {
+            let predicateOrders = #Predicate<IndexOrderModels> { order in
+                allSetIds.contains(order.sessionId)
+            }
+            do {
+                try modelContext.delete(model: IndexOrderModels.self, where: predicateOrders)
+                print("Related card orders marked for deletion.")
+            } catch {
+                print("Error deleting related card orders: \(error)")
+            }
+        } else {
+            // Jika tidak ada sesi, mungkin tetap ingin menghapus semua card orders jika ada yang orphan
+            // do {
+            //     try modelContext.delete(model: IndexOrderModels.self)
+            //     print("All card orders (potentially orphaned) marked for deletion.")
+            // } catch {
+            //     print("Error deleting all card orders: \(error)")
+            // }
+        }
+        
+        if modelContext.hasChanges {
+            do {
+                try modelContext.save()
+                print("All sessions and their card orders cleared and saved.")
+            } catch {
+                print("Error saving after clearing all sessions and card orders: \(error)")
+            }
+        } else {
+            print("Clear all sessions: No changes were made that require saving.")
         }
     }
     
     // Save the order of cards for a session
     func saveCardOrder(sessionId: String, cards: [Kanji], modelContext: ModelContext) {
-        // Delete any existing card order
-        clearCardOrder(for: sessionId, modelContext: modelContext)
+        // Delete any existing card order first without an immediate save
+        clearCardOrder(for: sessionId, modelContext: modelContext, shouldSave: false)
         
-        // Create card IDs list
         let indexIds = cards.map { $0.id.uuidString }
         
-        // Create and save new card order
         let cardOrder = IndexOrderModels(sessionId: sessionId, indexIds: indexIds)
         modelContext.insert(cardOrder)
         
-        // Mark session as having saved order
-        updateSessionOrderFlag(sessionId: sessionId, hasOrder: true, modelContext: modelContext)
+        updateSessionOrderFlag(sessionId: sessionId, hasOrder: true, modelContext: modelContext, shouldSave: false)
         
-        do {
-            try modelContext.save()
-            print("Card order saved for session \(sessionId)")
-        } catch {
-            print("Error saving card order: \(error)")
+        if modelContext.hasChanges {
+            do {
+                try modelContext.save()
+                print("Card order saved for session \(sessionId)")
+            } catch {
+                print("Error saving card order for session \(sessionId): \(error)")
+            }
         }
     }
     
@@ -148,76 +192,91 @@ class FlipcardSessionManager {
         let descriptor = FetchDescriptor<IndexOrderModels>(predicate: predicate)
         
         do {
-            let orders = try modelContext.fetch(descriptor)
-            guard let cardOrder = orders.first, !cardOrder.indexIds.isEmpty else {
+            guard let cardOrder = try modelContext.fetch(descriptor).first, !cardOrder.indexIds.isEmpty else {
                 return nil
             }
             
-            // Create a dictionary of available cards by ID for quick lookup
-            let cardsById = Dictionary(uniqueKeysWithValues: availableCards.map { (($0.id.uuidString), $0) })
-            
-            // Reconstruct the card order
+            let cardsById = Dictionary(uniqueKeysWithValues: availableCards.map { ($0.id.uuidString, $0) })
             var orderedCards: [Kanji] = []
             
-            for cardId in cardOrder.indexIds {
-                if let card = cardsById[cardId] {
+            for cardIdString in cardOrder.indexIds {
+                if let card = cardsById[cardIdString] {
                     orderedCards.append(card)
+                } else {
+                    print("Warning: Card with ID \(cardIdString) not found in available cards for session \(sessionId) during load.")
                 }
             }
             
-            // If we couldn't reconstruct the full order (some cards missing), return nil
-            if orderedCards.count != availableCards.count {
-                print("Card order incomplete, falling back to default")
-                return nil
+            // Validasi: jika jumlah kartu yang direkonstruksi tidak sama dengan jumlah ID yang disimpan,
+            // atau tidak sama dengan jumlah kartu yang tersedia (jika ini adalah syarat), maka order mungkin tidak valid.
+            // Untuk sekarang, kita akan kembalikan apa yang bisa direkonstruksi.
+            // Jika ingin lebih ketat:
+            if orderedCards.count != cardOrder.indexIds.count {
+                 print("Card order for \(sessionId) is incomplete (expected \(cardOrder.indexIds.count) IDs, reconstructed \(orderedCards.count) cards). Invalidating this order.")
+                 // Hapus order yang rusak dan update flag
+                 modelContext.delete(cardOrder)
+                 updateSessionOrderFlag(sessionId: sessionId, hasOrder: false, modelContext: modelContext, shouldSave: true) // simpan perubahan ini
+                 return nil
             }
+            // Opsional: bandingkan juga dengan availableCards.count jika seharusnya selalu sama
+            // if orderedCards.count != availableCards.count {
+            //     print("Card order count (\(orderedCards.count)) does not match available cards count (\(availableCards.count)) for session \(sessionId). Considering it invalid.")
+            //     return nil
+            // }
             
             return orderedCards
         } catch {
-            print("Error loading card order: \(error)")
+            print("Error loading card order for session \(sessionId): \(error)")
             return nil
         }
     }
     
     // Clear saved card order for a session
-    private func clearCardOrder(for sessionId: String, modelContext: ModelContext) {
+    private func clearCardOrder(for sessionId: String, modelContext: ModelContext, shouldSave: Bool = true) {
         let predicate = #Predicate<IndexOrderModels> { order in
             order.sessionId == sessionId
         }
-        let descriptor = FetchDescriptor<IndexOrderModels>(predicate: predicate)
-        
         do {
-            let orders = try modelContext.fetch(descriptor)
-            for order in orders {
-                modelContext.delete(order)
+            try modelContext.delete(model: IndexOrderModels.self, where: predicate)
+            print("Card order data marked for deletion for session: \(sessionId)")
+            
+            updateSessionOrderFlag(sessionId: sessionId, hasOrder: false, modelContext: modelContext, shouldSave: false) // Update flag, jangan save dulu
+            
+            if shouldSave && modelContext.hasChanges {
+                try modelContext.save()
+                print("Card order cleared and saved for session: \(sessionId)")
             }
-            
-            // Mark session as not having saved order
-            updateSessionOrderFlag(sessionId: sessionId, hasOrder: false, modelContext: modelContext)
-            
-            try modelContext.save()
         } catch {
-            print("Error clearing card order: \(error)")
+            print("Error clearing card order for session \(sessionId): \(error)")
         }
     }
     
     // Update the hasOrderSaved flag on a session
-    private func updateSessionOrderFlag(sessionId: String, hasOrder: Bool, modelContext: ModelContext) {
+    private func updateSessionOrderFlag(sessionId: String, hasOrder: Bool, modelContext: ModelContext, shouldSave: Bool = true) {
         let predicate = #Predicate<FlashCardSessionModels> { session in
             session.setId == sessionId
         }
         let descriptor = FetchDescriptor<FlashCardSessionModels>(predicate: predicate)
         
         do {
-            let sessions = try modelContext.fetch(descriptor)
-            if let session = sessions.first {
-                session.hasOrderSaved = hasOrder
+            if let session = try modelContext.fetch(descriptor).first {
+                if session.hasOrderSaved != hasOrder {
+                    session.hasOrderSaved = hasOrder
+                    print("Session order flag updated to \(hasOrder) for \(sessionId).")
+                    if shouldSave && modelContext.hasChanges {
+                        try modelContext.save()
+                        print("Session order flag saved for \(sessionId).")
+                    }
+                }
+            } else {
+                print("Warning: Session \(sessionId) not found to update 'hasOrderSaved' flag.")
             }
         } catch {
-            print("Error updating session order flag: \(error)")
+            print("Error updating session order flag for \(sessionId): \(error)")
         }
     }
     
-    // Format the last access date as a readable string
+    // Format the last access date
     func formatLastAccessDate(_ date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short

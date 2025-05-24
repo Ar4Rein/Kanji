@@ -47,11 +47,6 @@ struct KanjiSetFlipCardView: View {
         }
         .navigationTitle("Kanji Flash Card Sets")
     }
-    
-    // Ensure the data is imported when the view first appears
-    private func ensureDataIsImported() {
-        DataManager.shared.importDataIfNeeded(modelContext: modelContext)
-    }
 }
 
 struct KanjiSetFlipCardRow: View {
@@ -65,7 +60,7 @@ struct KanjiSetFlipCardRow: View {
     @State private var session: FlashCardSessionModels?
     
     var body: some View {
-        NavigationLink(destination: FlashCardView(kanjiSet: set)) {
+        NavigationLink(destination: FlashCardSetupView(kanjiSet: set)) {
             VStack(alignment: .leading) {
                 HStack {
                     Text(set.name)

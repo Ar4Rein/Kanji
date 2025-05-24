@@ -69,11 +69,6 @@ struct KanjiSetQuizView: View {
             }
         }
     }
-    
-    // Ensure the data is imported when the view first appears
-    private func ensureDataIsImported() {
-        DataManager.shared.importDataIfNeeded(modelContext: modelContext)
-    }
 }
 
 #Preview {
