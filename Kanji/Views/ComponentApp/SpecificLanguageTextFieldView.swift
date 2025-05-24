@@ -18,7 +18,7 @@ class SpecificLanguageTextField: UITextField {
         }
     }
     
-    let padding = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
+    let padding = UIEdgeInsets(top: 5, left: 10, bottom: 5, right: 10)
         
     override func textRect(forBounds bounds: CGRect) -> CGRect {
         return bounds.inset(by: padding)

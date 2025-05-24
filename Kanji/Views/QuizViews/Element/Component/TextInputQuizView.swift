@@ -38,32 +38,50 @@ struct TextInputQuizView: View {
                 QuizHeaderView(session: session)
 
                 Text(question.questionText)
-                    .font(.title2)
+                    .font(.largeTitle)
                     .fontWeight(.medium)
                     .multilineTextAlignment(.center)
                     .padding()
                     .minimumScaleFactor(0.7)
 
-                TextField("Ketik jawabanmu di sini", text: $userAnswer)
-                    .textFieldStyle(.roundedBorder)
-                    .padding(.horizontal)
-                    .autocorrectionDisabled(true)
-                    .textInputAutocapitalization(.never)
-                    .submitLabel(.done)
-                    .focused($isTextFieldFocused)
-                    .onSubmit {
-                        if !userAnswer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !showFeedback {
-                            checkAnswer()
+                if !hiraganaOnlyMode {
+                    TextField("Ketik jawabanmu di sini", text: $userAnswer)
+                        .textFieldStyle(.roundedBorder)
+                        .padding(.horizontal)
+                        .autocorrectionDisabled(true)
+                        .textInputAutocapitalization(.never)
+                        .submitLabel(.done)
+                        .focused($isTextFieldFocused)
+                        .onSubmit {
+                            if !userAnswer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !showFeedback {
+                                checkAnswer()
+                            }
                         }
-                    }
-                    .disabled(showFeedback)
+                        .disabled(showFeedback)
+                } else {
+                    SpecificLanguageTextFieldView(placeHolder: "Tulis dalam hiragana", language: "ja-JP", text: $userAnswer)
+                        .textFieldStyle(.roundedBorder)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal)
+                        .autocorrectionDisabled(true)
+                        .textInputAutocapitalization(.never)
+                        .submitLabel(.done)
+                        .focused($isTextFieldFocused)
+                        .onSubmit {
+                            if !userAnswer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !showFeedback {
+                                checkAnswer()
+                            }
+                        }
+                        .disabled(showFeedback)
+                }
+                
 
                 Spacer()
 
                 if showFeedback {
                     VStack {
                         Text(feedbackMessage)
-                            .font(.headline)
+                            .font(.title)
                             .foregroundColor(isAnswerCorrect == true ? .green : .red)
                     }
                     .padding(.vertical)
