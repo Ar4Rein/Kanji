@@ -10,11 +10,15 @@ import SwiftData
 
 struct FlipCardContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var tabViewHelper: FLoatingTabViewHelper
+    
     @Query var sessions: [FlashCardSessionModels]
+    
     @State private var tab: AppTab = .quiz
     @State private var isLoading = false
     @State private var showConfirmClearAll = false
-    @State private var hideTabBar: Bool = false
+    
+    var bottomClearance: CGFloat
     
     var body: some View {
         NavigationStack {
@@ -38,7 +42,7 @@ struct FlipCardContentView: View {
                         ToolbarItem(placement: .topBarLeading) {
                             Menu {
                                 Button(role: .destructive, action: {
-                                    hideTabBar.toggle()
+                                    
                                 }) {
                                     Label("Hide Tab Bar", systemImage: "eye.slash")
                                 }
@@ -57,7 +61,6 @@ struct FlipCardContentView: View {
                     }
             }
         }
-        .hideFloatingTabBar(hideTabBar)
     }
     
     private var loadingView: some View {
@@ -76,6 +79,6 @@ struct FlipCardContentView: View {
 }
 
 #Preview {
-    FlipCardContentView()
+    FlipCardContentView(bottomClearance: 0)
         .modelContainer(for: [KanjiSet.self, FlashCardSessionModels.self, IndexOrderModels.self], inMemory: true)
 }

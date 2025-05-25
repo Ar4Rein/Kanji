@@ -10,10 +10,12 @@ import SwiftData
 
 struct ListContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var tabViewHelper: FLoatingTabViewHelper
+    
     // Mengambil semua KanjiSet dan mengurutkannya berdasarkan level, lalu nama.
     @Query(sort: [SortDescriptor(\KanjiSet.level), SortDescriptor(\KanjiSet.name)]) private var allKanjiSets: [KanjiSet]
     
-    @State private var hideTabBar: Bool = false
+    var bottomClearance: CGFloat
 
     // Membuat daftar level unik untuk tab
     private var levels: [String] {
@@ -58,6 +60,9 @@ struct ListContentView: View {
                         .tag(level) // Tag untuk identifikasi tab
                 }
             }
+            .onAppear {
+                
+            }
 //            .tabViewStyle(.page)
 //            .indexViewStyle(.page(backgroundDisplayMode: .always))
         }
@@ -75,5 +80,5 @@ struct ListContentView: View {
 }
 
 #Preview {
-    ListContentView()
+    ListContentView(bottomClearance: 0)
 }

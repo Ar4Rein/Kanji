@@ -24,8 +24,7 @@ struct TextInputQuizView: View {
     @State private var isLoading = true
     @State private var isQuizFinished = false
     @FocusState private var isTextFieldFocused: Bool
-
-    @State private var hideTabBar: Bool = false
+    
     @State private var hiraganaOnlyMode: Bool = false // <-- STATE BARU untuk toggle
 
     var body: some View {
@@ -110,8 +109,7 @@ struct TextInputQuizView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button(role: .destructive, action: {
-                        hideTabBar.toggle()
-                        // print("hide the tabbar") // Komentar bisa dihapus jika tidak perlu
+                        
                     }) {
                         Label("Hide Tab Bar", systemImage: "eye.slash")
                     }
@@ -132,9 +130,6 @@ struct TextInputQuizView: View {
         }
         .onAppear {
             // hideTabBar.toggle() // Perilaku asli, mungkin perlu disesuaikan jika tidak ingin toggle otomatis
-            if !hideTabBar { // Hanya toggle jika belum disembunyikan, atau sesuaikan logikanya
-                hideTabBar = true
-            }
             setupQuiz() // Panggilan awal setupQuiz
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 isTextFieldFocused = true
@@ -142,7 +137,6 @@ struct TextInputQuizView: View {
         }
         .navigationTitle("Kuis: \(kanjiSet.name)")
         .navigationBarTitleDisplayMode(.inline)
-        .hideFloatingTabBar(hideTabBar) // Pastikan extension ini ada dan berfungsi
     }
 
     func setupQuiz() {

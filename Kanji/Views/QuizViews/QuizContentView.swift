@@ -10,11 +10,14 @@ import SwiftData
 
 struct QuizContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var tabViewHelper: FLoatingTabViewHelper
+    
     @Query var sessions: [QuizSessionModels]
     @State private var tab: AppTab = .quiz
     @State private var isLoading = false
     @State private var showConfirmClearAll = false
-    @State private var hideTabBar: Bool = false
+    
+    var bottomClearance: CGFloat
     
     var body: some View {
         NavigationStack {
@@ -38,7 +41,7 @@ struct QuizContentView: View {
                         ToolbarItem(placement: .topBarLeading) {
                             Menu {
                                 Button(role: .destructive, action: {
-                                    hideTabBar.toggle()
+                                    
                                     print("hide the tabbar")
                                 }) {
                                     Label("Hide Tab Bar", systemImage: "eye.slash")
@@ -58,7 +61,9 @@ struct QuizContentView: View {
                     }
             }
         }
-        .hideFloatingTabBar(hideTabBar)
+        .onAppear {
+            
+        }
     }
     
     private var loadingView: some View {

@@ -20,7 +20,6 @@ struct FlashCardSetupView: View {
     // isFirstLoad tidak digunakan secara aktif, bisa dihapus jika tidak ada logika khusus
     // @State private var isFirstLoad = true
     @State private var animation: Animation = .interactiveSpring() // Menggunakan interactiveSpring untuk feel lebih baik
-    @State private var hideTabBar: Bool = false
     
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss // Untuk kembali jika set kosong
@@ -125,14 +124,13 @@ struct FlashCardSetupView: View {
         }
         .navigationTitle(kanjiSet.name)
         .navigationBarTitleDisplayMode(.inline)
-        .hideFloatingTabBar(hideTabBar) // Asumsi ini adalah custom modifier Anda
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button {
-                        hideTabBar.toggle()
+                        
                     } label: {
-                        Label(hideTabBar ? "Tampilkan Tab Bar" : "Sembunyikan Tab Bar", systemImage: hideTabBar ? "eye" : "eye.slash")
+                        
                     }
 
                     if !shuffledCards.isEmpty {
@@ -181,10 +179,6 @@ struct FlashCardSetupView: View {
                 return
             }
             loadSession()
-            // Sembunyikan tab bar saat masuk ke view ini secara default (sesuai logika sebelumnya)
-            if !hideTabBar { // Hanya toggle jika belum disembunyikan
-                hideTabBar = true
-            }
         }
         .onDisappear {
             // Hanya update dan save order jika ada kartu dan sesi
@@ -195,10 +189,6 @@ struct FlashCardSetupView: View {
                     cards: shuffledCards,
                     modelContext: modelContext
                 )
-            }
-            // Kembalikan visibilitas tab bar jika sebelumnya disembunyikan oleh view ini
-            if hideTabBar { // Hanya toggle jika disembunyikan oleh view ini
-                 hideTabBar = false
             }
         }
     }

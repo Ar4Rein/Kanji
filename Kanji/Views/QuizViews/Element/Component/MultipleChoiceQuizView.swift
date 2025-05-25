@@ -26,8 +26,6 @@ struct MultipleChoiceQuizView: View {
     @State private var isAnswerCorrect: Bool? = nil    // Apakah jawaban terakhir benar.
     @State private var isLoading = true                 // Apakah data kuis sedang dimuat.
     @State private var isQuizFinished = false           // Apakah kuis telah selesai.
-
-    @State private var hideTabBar: Bool = false
     
     var body: some View {
         VStack(spacing: 15) {
@@ -106,7 +104,7 @@ struct MultipleChoiceQuizView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button(role: .destructive, action: {
-                        hideTabBar.toggle()
+                        
                         print("hide the tabbar")
                     }) {
                         Label("Hide Tab Bar", systemImage: "eye.slash")
@@ -117,12 +115,10 @@ struct MultipleChoiceQuizView: View {
             }
         }
         .onAppear {
-            hideTabBar.toggle()
             setupQuiz()
         } // Panggil setupQuiz saat view muncul.
         .navigationTitle("Kuis: \(kanjiSet.name)")
         .navigationBarTitleDisplayMode(.inline)
-        .hideFloatingTabBar(hideTabBar)
     }
     
     // Fungsi untuk menentukan warna latar belakang pilihan jawaban.

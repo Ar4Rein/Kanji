@@ -14,8 +14,6 @@ struct KanjiSetFlipCardView: View {
     
     @Query private var kanjiSets: [KanjiSet]
     
-    @State private var hideTabBar: Bool = false
-    
     // Grouped kanji sets by level
     private var setsByLevel: [String: [KanjiSet]] {
         Dictionary(grouping: kanjiSets) { $0.level }
@@ -41,7 +39,6 @@ struct KanjiSetFlipCardView: View {
                 Section(header: Text(level)) {
                     ForEach(setsByLevel[level] ?? [], id: \.self) { set in
                         KanjiSetFlipCardRow(set: set)
-                            .hideFloatingTabBar(hideTabBar)
                     }
                 }
             }

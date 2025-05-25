@@ -19,8 +19,6 @@ struct KanjiLevelView: View {
     // State untuk filter internal di dalam tab ini
     @State private var selectedSetName: String? // Untuk filter "jenis" (nama KanjiSet)
     @State private var searchText: String = ""
-
-    @State private var hideTabBar: Bool = false
     
     // Initializer untuk mengkonfigurasi query secara dinamis berdasarkan level
     init(level: String) {
@@ -133,7 +131,7 @@ struct KanjiLevelView: View {
                         ToolbarItem(placement: .topBarLeading) {
                             Menu {
                                 Button(role: .destructive, action: {
-                                    hideTabBar.toggle()
+                                    
                                     print("hide the tabbar")
                                 }) {
                                     Label("Hide Tab Bar", systemImage: "eye.slash")
@@ -147,7 +145,6 @@ struct KanjiLevelView: View {
             }
             .navigationTitle("Kanji Level \(level)")
             .navigationBarTitleDisplayMode(.inline) // Judul yang lebih kecil
-            .hideFloatingTabBar(hideTabBar)
         }
         // Penting untuk iPad agar tidak default ke split view jika ini adalah root scene tab
         // .navigationViewStyle(.stack) // Deprecated, gunakan NavigationStack jika diperlukan navigasi lebih dalam

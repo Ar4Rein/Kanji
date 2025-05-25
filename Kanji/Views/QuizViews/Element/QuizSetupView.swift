@@ -16,8 +16,6 @@ struct QuizSetupView: View {
     // State untuk mengontrol navigasi ke view kuis yang spesifik.
     // `navigationState` akan diisi ketika pengguna memilih untuk memulai atau melanjutkan kuis.
     @State private var navigationState: NavigationState?
-    
-    @State private var hideTabBar: Bool = false
 
     // Struktur helper untuk data navigasi.
     // MODIFIKASI: Tambahkan konformasi ke Hashable.
@@ -72,7 +70,6 @@ struct QuizSetupView: View {
                 }
             }
         }
-        .hideFloatingTabBar(hideTabBar)
     }
 }
 
