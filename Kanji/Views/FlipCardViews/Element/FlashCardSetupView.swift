@@ -22,15 +22,11 @@ struct FlashCardSetupView: View {
     @State private var animation: Animation = .interactiveSpring() // Menggunakan interactiveSpring untuk feel lebih baik
     @State private var hideTabBar: Bool = false
     
-    @State private var swipeDirection: SwipeDirection = .none
-
-    enum SwipeDirection {
-        case left, right, none
-    }
-    
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss // Untuk kembali jika set kosong
 
+    var onDismiss: () -> Void
+    
     // Helper untuk lebar progress bar
     func progressWidth(currentIndex: Int, total: Int) -> CGFloat {
         guard total > 0 else { return 0 }
@@ -125,38 +121,6 @@ struct FlashCardSetupView: View {
                         }
                 )
                 .padding(.vertical)
-                
-                Spacer() // Dorong tombol ke bawah jika ada ruang
-                
-                // Tombol navigasi (opsional, karena swipe sudah ada)
-                // Jika ingin menggunakan tombol:
-                /*
-                HStack(spacing: 40) {
-                    Button(action: { goPrevious() }) {
-                        Image(systemName: "arrow.left.circle.fill")
-                            .resizable().frame(width: 50, height: 50)
-                    }
-                    .disabled(currentIndex == 0)
-                    .opacity(currentIndex == 0 ? 0.5 : 1.0)
-
-                    Button(action: {
-                        handleShuffleCards()
-                    }) {
-                        Image(systemName: "shuffle.circle.fill")
-                            .resizable().frame(width: 50, height: 50)
-                            .foregroundStyle(.purple)
-                    }
-
-                    Button(action: { goNext() }) {
-                        Image(systemName: "arrow.right.circle.fill")
-                            .resizable().frame(width: 50, height: 50)
-                    }
-                    .disabled(currentIndex >= shuffledCards.count - 1 && shuffledCards.count > 0)
-                    .opacity(currentIndex >= shuffledCards.count - 1 && shuffledCards.count > 0 ? 0.5 : 1.0)
-                }
-                .foregroundStyle(Color.blue)
-                .padding()
-                 */
             }
         }
         .navigationTitle(kanjiSet.name)
@@ -199,6 +163,7 @@ struct FlashCardSetupView: View {
             Button("Lanjutkan Belajar") {
                 showingProgressAlert = false
                 // Bisa tambahkan opsi untuk ke set berikutnya atau kembali
+                dismiss()
             }
             Button("Ulangi Set Ini", role: .destructive) {
                 showingProgressAlert = false
@@ -412,21 +377,4 @@ struct FlashCardSetupView: View {
         // Setelah clear, dapatkan sesi baru (yang bersih)
         currentSession = FlipcardSessionManager.shared.getOrCreateSession(for: kanjiSet, modelContext: modelContext)
     }
-}
-
-#Preview {
-    NavigationStack {
-        FlashCardSetupView(kanjiSet: KanjiSet(
-            level: "N5",
-            name: "kata_kerja_n5",
-            items: [
-                Kanji(id: UUID(), kanji: "秋", reading: "あき", meaning: "Musim gugur"),
-                Kanji(id: UUID(), kanji: "冬", reading: "ふゆ", meaning: "Musim dingin"),
-                Kanji(id: UUID(), kanji: "春", reading: "はる", meaning: "Musim semi"),
-                Kanji(id: UUID(), kanji: "夏", reading: "なつ", meaning: "Musim panas"),
-                Kanji(id: UUID(), kanji: "日", reading: "ひ", meaning: "Hari/Matahari"),
-            ]
-        ))
-    }
-    .modelContainer(for: [KanjiSet.self, FlashCardSessionModels.self, IndexOrderModels.self], inMemory: true)
 }

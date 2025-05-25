@@ -11,6 +11,7 @@ import SwiftData
 struct KanjiSetFlipCardView: View {
     // Environment
     @Environment(\.modelContext) private var modelContext
+    
     @Query private var kanjiSets: [KanjiSet]
     
     @State private var hideTabBar: Bool = false
@@ -52,6 +53,7 @@ struct KanjiSetFlipCardView: View {
 struct KanjiSetFlipCardRow: View {
     // Environment
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     
     // Properties
     let set: KanjiSet
@@ -60,7 +62,7 @@ struct KanjiSetFlipCardRow: View {
     @State private var session: FlashCardSessionModels?
     
     var body: some View {
-        NavigationLink(destination: FlashCardSetupView(kanjiSet: set)) {
+        NavigationLink(destination: FlashCardSetupView(kanjiSet: set, onDismiss: { dismiss() })) {
             VStack(alignment: .leading) {
                 HStack {
                     Text(set.name)
